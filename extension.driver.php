@@ -246,7 +246,7 @@
 				CREATE TABLE `tbl_members_roles_event_permissions` (
 				  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
 				  `role_id` int(11) unsigned NOT NULL,
-				  `event` varchar(255) NOT NULL,
+				  `event` varchar(50) NOT NULL,
 				  `action` varchar(60) NOT NULL,
 				  `level` smallint(1) unsigned NOT NULL DEFAULT '0',
 				  PRIMARY KEY (`id`),
@@ -457,13 +457,6 @@
 						'ALTER TABLE `tbl_entries_data_%d` CHANGE `password` `password` VARCHAR(150) DEFAULT NULL', $field
 					));
 				}
-			}
-
-			// Update event lengths. RE: #246
-			if(version_compare($previousVersion, '1.4', '<')) {
-				Symphony::Database()->query(sprintf(
-					'ALTER TABLE `tbl_members_roles_event_permissions` CHANGE `event` `event` VARCHAR(255) NOT NULL', $field
-				));
 			}
 		}
 
@@ -689,7 +682,7 @@
 				);
 			}
 
-			if(!FieldManager::isFieldUsed(self::getFieldType('authentication'))) {
+			if(!FieldManager::isFieldUsed(self::getFieldType('activation'))) {
 				// Add Member: Login filter
 				$context['options'][] = array(
 					'member-login',
@@ -785,7 +778,7 @@
 			return $options;
 		}
 
-		/*-------------------------------------------------------------------------
+			/*-------------------------------------------------------------------------
 		Preferences:
 		-------------------------------------------------------------------------*/
 
@@ -855,8 +848,7 @@
 		* @return boolean
 		*/
 		public function savePreferences(array &$context){
-			$section = (isset($context['settings']['members']['section']) ? implode(',', $context['settings']['members']['section']) : '');
-			$context['settings']['members']['section'] = $section;
+			$context['settings']['members']['section'] = implode(',', $context['settings']['members']['section']);
 		}
 
 	/*-------------------------------------------------------------------------
@@ -936,19 +928,6 @@
 				}
 				else {
 					self::$_failed_login_attempt = true;
-
-					/**
-					 * A failed Member login attempt
-					 *
-					 * @delegate MembersLoginFailure
-					 * @param string $context
-					 *  '/frontend/'
-					 * @param string $username
-					 *  The username of the Member who attempted to login.
-					 */
-					Symphony::ExtensionManager()->notifyMembers('MembersLoginFailure', '/frontend/', array(
-						'username' => Symphony::Database()->cleanValue($_POST['fields'][extension_Members::getFieldHandle('identity')])
-					));
 				}
 			}
 
@@ -959,22 +938,20 @@
 				$this->getMemberDriver()->updateSystemTimezoneOffset();
 
 				if($hasRoles) {
-					$role_field = extension_Members::getField('role');
-					if($role_field) {
-						$role_data = $this->getMemberDriver()->getMember()->getData($role_field->get('id'));
-					}
+					$role_data = $this->getMemberDriver()->getMember()->getData(extension_Members::getField('role')->get('id'));
 				}
 			}
 
 			// If there is no role field, or a Developer is logged in, return, as Developers
-			// should be able to access every page. Handles Symphony 2.4 or Symphony 2.5
-			$isDeveloper = (method_exists(Symphony::Engine(), 'Author'))
-				? Symphony::Engine()->Author() instanceof Author && Symphony::Engine()->Author()->isDeveloper()
-				: Symphony::Engine()->Author instanceof Author && Symphony::Engine()->Author->isDeveloper();
-			if(!$hasRoles || $isDeveloper) return;
+			// should be able to access every page.
+			if(
+				!$hasRoles
+				|| (Frontend::instance()->Author instanceof Author && Frontend::instance()->Author->isDeveloper())
+			) return;
 
 			$role_id = ($isLoggedIn) ? $role_data['role_id'] : Role::PUBLIC_ROLE;
 			$role = RoleManager::fetch($role_id);
+
 			if($role instanceof Role && !$role->canAccessPage((int)$context['page_data']['id'])) {
 				// User has no access to this page, so look for a custom 403 page
 				if($row = PageManager::fetchPageByType('403')) {

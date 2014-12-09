@@ -56,8 +56,7 @@
 
 			return '
 				<p>This event takes an activation code and an identifier for the Member (either Email or Username) to activate their account.
-				An activation code is available by including the Members: Activation field in a data source on the same page as this event, or by using
-				the event\'s result.</p>
+				An activation code is available by outputting your Activation field in a Datasource after the registration event has executed.</p>
 				<h3>Example Front-end Form Markup</h3>
 				<p>This is an example of the form markup you can use on your front end. An input field
 				accepts the member\'s activation code and either the member\'s email address or username.</p>
@@ -112,8 +111,9 @@
 			if(!$activation instanceof fieldMemberActivation) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('No Activation field found.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
+					new XMLElement('error', null, array(
+						'type' => 'invalid',
+						'message' => __('No Activation field found.')
 					))
 				);
 				$result->appendChild($post_values);
@@ -125,8 +125,9 @@
 			if(!$identity instanceof Identity) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('No Identity field found.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
+					new XMLElement('error', null, array(
+						'type' => 'invalid',
+						'message' => __('No Identity field found.')
 					))
 				);
 				$result->appendChild($post_values);
@@ -137,16 +138,10 @@
 			if(!isset($fields[$activation->get('element_name')]) or empty($fields[$activation->get('element_name')])) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Member event encountered errors when processing.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
-					))
-				);
-				$result->appendChild(
 					new XMLElement($activation->get('element_name'), null, array(
-						'label' => $activation->get('label'),
 						'type' => 'missing',
-						'message-id' => EventMessages::FIELD_MISSING,
 						'message' => __('%s is a required field.', array($activation->get('label'))),
+						'label' => $activation->get('label')
 					))
 				);
 				$result->appendChild($post_values);
@@ -161,16 +156,11 @@
 			if(is_null($member_id)) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Member event encountered errors when processing.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
+					new XMLElement($identity->get('element_name'), null, array(
+						'type' => 'invalid',
+						'message' => __('Member not found.'),
+						'label' => $identity->get('label')
 					))
-				);
-				$result->appendChild(
-					new XMLElement(
-						$identity->get('element_name'),
-						null,
-						extension_Members::$_errors[$identity->get('element_name')]
-					)
 				);
 				$result->appendChild($post_values);
 				return $result;
@@ -182,16 +172,10 @@
 			if($entry->getData($activation->get('id'), true)->activated == 'yes') {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Member event encountered errors when processing.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
-					))
-				);
-				$result->appendChild(
 					new XMLElement($activation->get('element_name'), null, array(
-						'label' => $activation->get('label'),
 						'type' => 'invalid',
-						'message-id' => MemberEventMessages::ACTIVATION_PRE_COMPLETED,
 						'message' => __('Member is already activated.'),
+						'label' => $activation->get('label')
 					))
 				);
 				$result->appendChild($post_values);
@@ -205,16 +189,10 @@
 			if($code['code'] != $fields[$activation->get('element_name')]) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Member event encountered errors when processing.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
-					))
-				);
-				$result->appendChild(
 					new XMLElement($activation->get('element_name'), null, array(
-						'label' => $activation->get('label'),
 						'type' => 'invalid',
-						'message-id' => MemberEventMessages::ACTIVATION_CODE_INVALID,
 						'message' => __('Activation error. Code was invalid or has expired.'),
+						'label' => $activation->get('label')
 					))
 				);
 				$result->appendChild($post_values);

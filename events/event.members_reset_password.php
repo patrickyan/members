@@ -54,11 +54,10 @@
 			$div->appendChild(Widget::Input('action[save]', __('Save Changes'), 'submit', array('accesskey' => 's')));
 
 			return '
-				<p>This event requires the user to enter their recovery code and then their new password. Should the recovery code
-				be correct and the new password validate, the member\'s password will be changed to their new password.</p><p>
-				A recovery code is available by including the
-				Member: Password field in a data source on the same page as this event, or by using
-				the event\'s result.</p>
+				<p>This event takes a recovery code and a new password for a member. Should the recovery code
+				be correct and the new password validate, the member\'s password is changed to their new password.<br />
+				A recovery code is available by outputting the
+				Member: Password field after the Member: Generate Recovery Code event has executed.</p>
 				<h3>Example Front-end Form Markup</h3>
 				<p>This is an example of the form markup you can use on your front end. An input field
 				accepts the member\'s recovery code, either the member\'s email address or username and two password
@@ -87,7 +86,6 @@
 			$result = new XMLElement(self::ROOTELEMENT);
 			$fields = $_REQUEST['fields'];
 			$this->driver = Symphony::ExtensionManager()->create('members');
-			$requested_identity = $fields[extension_Members::getFieldHandle('identity')];
 
 			// Add POST values to the Event XML
 			$post_values = new XMLElement('post-values');
@@ -100,8 +98,6 @@
 			// Set the section ID
 			$result = $this->setMembersSection($result, $_REQUEST['members-section-id']);
 			if($result->getAttribute('result') === 'error') {
-				// We are not calling notifyMembersPasswordResetFailure here,
-				// because this is not an authentication error
 				$result->appendChild($post_values);
 				return $result;
 			}
@@ -109,11 +105,7 @@
 			// Trigger the EventPreSaveFilter delegate. We are using this to make
 			// use of the XSS Filter extension that will ensure our data is ok to use
 			$this->notifyEventPreSaveFilter($result, $fields, $post_values);
-			if($result->getAttribute('result') == 'error') {
-				// We are not calling notifyMembersPasswordResetFailure here,
-				// because this is not an authentication error
-				return $result;
-			}
+			if($result->getAttribute('result') == 'error') return $result;
 
 			// Add any Email Templates for this event
 			$this->addEmailTemplates('reset-password-template');
@@ -124,11 +116,11 @@
 			if(!$auth instanceof fieldMemberPassword) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('No Authentication field found.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
+					new XMLElement('error', null, array(
+						'type' => 'invalid',
+						'message' => __('No Authentication field found.')
 					))
 				);
-				$this->notifyMembersPasswordResetFailure($requested_identity);
 				$result->appendChild($post_values);
 				return $result;
 			}
@@ -139,11 +131,11 @@
 			if(!$identity instanceof Identity) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('No Identity field found.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
+					new XMLElement('error', null, array(
+						'type' => 'invalid',
+						'message' => __('No Identity field found.')
 					))
 				);
-				$this->notifyMembersPasswordResetFailure($requested_identity);
 				$result->appendChild($post_values);
 				return $result;
 			}
@@ -154,20 +146,13 @@
 			) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Member event encountered errors when processing.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
-					))
-				);
-				$result->appendChild(
 					new XMLElement($auth->get('element_name'), null, array(
-						'label' => $auth->get('label'),
 						'type' => 'missing',
-						'message-id' => EventMessages::FIELD_MISSING,
 						'message' =>  __('Recovery code is a required field.'),
+						'label' => $auth->get('label')
 					))
 				);
 
-				$this->notifyMembersPasswordResetFailure($requested_identity);
 				$result->appendChild($post_values);
 				return $result;
 			}
@@ -183,20 +168,12 @@
 			if(empty($row)) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Member encountered errors.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
-					))
-				);
-				$result->appendChild(
 					new XMLElement($auth->get('element_name'), null, array(
-						'label' => $auth->get('label'),
 						'type' => 'invalid',
-						'message-id' => EventMessages::FIELD_INVALID,
 						'message' => __('No recovery code found.'),
+						'label' => $auth->get('label')
 					))
 				);
-
-				$this->notifyMembersPasswordResetFailure($requested_identity);
 			}
 			else {
 				// Retrieve Member Entry record
@@ -205,21 +182,16 @@
 				// Check that the given Identity data matches the Member that the
 				// recovery code is for
 				$member_id = $identity->fetchMemberIDBy($fields[$identity->get('element_name')]);
+
 				if(!$entry instanceof Entry || $member_id != $row['entry_id']) {
 					$result->setAttribute('result', 'error');
 					$result->appendChild(
-						new XMLElement('message', __('Member event encountered errors when processing.'), array(
-							'message-id' => MemberEventMessages::MEMBER_ERRORS
+						new XMLElement($identity->get('element_name'), null, array(
+							'type' => 'invalid',
+							'message' =>  __('Member not found.'),
+							'label' => $identity->get('label')
 						))
 					);
-					$result->appendChild(
-						new XMLElement(
-							$identity->get('element_name'),
-							null, 
-							extension_Members::$_errors[$identity->get('element_name')]
-						)
-					);
-					$this->notifyMembersPasswordResetFailure($requested_identity);
 					$result->appendChild($post_values);
 					return $result;
 				}
@@ -236,19 +208,12 @@
 				)))) {
 					$result->setAttribute('result', 'error');
 					$result->appendChild(
-						new XMLElement('message', __('Member event encountered errors when processing.'), array(
-							'message-id' => MemberEventMessages::MEMBER_ERRORS
-						))
-					);
-					$result->appendChild(
 						new XMLElement($auth->get('element_name'), null, array(
-							'label' => $auth->get('label'),
 							'type' => 'invalid',
-							'message-id' => MemberEventMessages::RECOVERY_CODE_INVALID,
 							'message' => __('Recovery code has expired.'),
+							'label' => $auth->get('label')
 						))
 					);
-					$this->notifyMembersPasswordResetFailure($requested_identity);
 					$result->appendChild($post_values);
 					return $result;
 				}
@@ -265,19 +230,12 @@
 				if(Field::__OK__ != $status) {
 					$result->setAttribute('result', 'error');
 					$result->appendChild(
-						new XMLElement('message', __('Member event encountered errors when processing.'), array(
-							'message-id' => MemberEventMessages::MEMBER_ERRORS
-						))
-					);
-					$result->appendChild(
 						new XMLElement($auth->get('element_name'), null, array(
 							'type' => ($status == Field::__MISSING_FIELDS__) ? 'missing' : 'invalid',
 							'message' => $message,
-							'message-id' => ($status == Field::__MISSING_FIELDS__) ? EventMessages::FIELD_MISSING : EventMessages::FIELD_INVALID,
 							'label' => $auth->get('label')
 						))
 					);
-					$this->notifyMembersPasswordResetFailure($requested_identity);
 					$result->appendChild($post_values);
 					return $result;
 				}

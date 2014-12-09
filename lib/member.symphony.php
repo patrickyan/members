@@ -1,5 +1,4 @@
 <?php
-	require_once EXTENSIONS . '/members/lib/class.membersevent.php';
 
 	Class SymphonyMember extends Members {
 
@@ -89,7 +88,7 @@
 
 			// Check that if there's activiation, that this Member is activated.
 			if(!is_null($this->section->getFieldHandle('activation'))) {
-				$entry = EntryManager::fetch($member_id, NULL, NULL, NULL, NULL, NULL, false, true, array($this->section->getFieldHandle('activation')));
+				$entry = EntryManager::fetch($member_id);
 
 				$isActivated = $entry[0]->getData($this->section->getField('activation')->get('id'), true)->activated == "yes";
 
@@ -106,7 +105,7 @@
 
 				// If the member isn't activated and a Role field doesn't exist
 				// just return false.
-				if(!$isActivated && !FieldManager::isFieldUsed(extension_Members::getFieldType('role'))) {
+				if(!$isActivated && !FieldManager::isFieldUsed($this->section->getFieldType('role'))) {
 					extension_Members::$_errors[$this->section->getFieldHandle('activation')] = array(
 						'message' => __('Member is not activated.'),
 						'type' => 'invalid',
@@ -190,38 +189,26 @@
 			// Check to ensure that we actually have some data to try and log a user in with.
 			if(empty($data['password']) && isset($credentials[$this->section->getFieldHandle('authentication')])) {
 				extension_Members::$_errors[$this->section->getFieldHandle('authentication')] = array(
-					'label' => $this->section->getField('authentication')->get('label'),
-					'type' => 'missing',
-					'message-id' => EventMessages::FIELD_MISSING,
 					'message' => __('%s is a required field.', array($this->section->getField('authentication')->get('label'))),
+					'type' => 'missing',
+					'label' => $this->section->getField('authentication')->get('label')
 				);
 			}
 
 			if(isset($data['username']) && empty($data['username'])) {
 				extension_Members::$_errors[$this->section->getFieldHandle('identity')] = array(
-					'label' => $this->section->getField('identity')->get('label'),
-					'type' => 'missing',
-					'message-id' => EventMessages::FIELD_MISSING,
 					'message' => __('%s is a required field.', array($this->section->getField('identity')->get('label'))),
+					'type' => 'missing',
+					'label' => $this->section->getField('identity')->get('label')
 				);
 			}
 
 			if(isset($data['email']) && empty($data['email'])) {
 				extension_Members::$_errors[$this->section->getFieldHandle('email')] = array(
-					'label' => $this->section->getField('email')->get('label'),
-					'type' => 'missing',
-					'message-id' => EventMessages::FIELD_MISSING,
 					'message' => __('%s is a required field.', array($this->section->getField('email')->get('label'))),
-				);
-			}
-			else if(!fieldMemberEmail::applyValidationRule($email)) {
-				extension_Members::$_errors[$this->section->getFieldHandle('email')] = array(
-					'message' => __('\'%s\' contains invalid characters.', array($this->section->getField('email')->get('label'))),
-					'message-id' => EventMessages::FIELD_INVALID,
-					'type' => 'invalid',
+					'type' => 'missing',
 					'label' => $this->section->getField('email')->get('label')
 				);
-				return null;
 			}
 
 			// If there is errors already, no point continuing, return false

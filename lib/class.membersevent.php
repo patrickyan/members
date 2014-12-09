@@ -60,8 +60,9 @@
 			if(isset($member_section_id) && $this->driver->setMembersSection($member_section_id) === false) {
 				$result->setAttribute('result', 'error');
 				$result->appendChild(
-					new XMLElement('message', __('Invalid Members section ID given.'), array(
-						'message-id' => MemberEventMessages::MEMBER_ERRORS
+					new XMLElement('error', null, array(
+						'type' => 'invalid',
+						'message' => __('Invalid Members section ID given.')
 					))
 				);
 			}
@@ -112,9 +113,6 @@
 				if ($can_proceed !== true) {
 					$result->setAttribute('result', 'error');
 					$result->appendChild($post_values);
-	                $result->appendChild(new XMLElement('message', __('Member event encountered errors when processing.'), array(
-	                    'message-id' => MemberEventMessages::FILTER_FAILED
-	                )));
 					return $result;
 				}
 			}
@@ -155,43 +153,4 @@
 			}
 		}
 
-		protected function notifyMembersPasswordResetFailure($username) {
-			/**
-			 * A failed password reset attempt
-			 *
-			 * @delegate MembersPasswordResetFailure
-			 * @param string $context
-			 *  '/frontend/'
-			 * @param string $username
-			 *  Should be the value of the identity field for which the password reset has been attempted
-			 */
-			Symphony::ExtensionManager()->notifyMembers(
-				'MembersPasswordResetFailure',
-				'/frontend/',
-				array(
-					'username' => Symphony::Database()->cleanValue($username)
-				)
-			);
-		}
 	}
-
-/**
- * Basic lookup class for Event messages, allows for frontend developers
- * to localise and change event messages without relying on string
- * comparision.
- *
- * @since Symphony 2.4
- */
-class MemberEventMessages extends EventMessages
-{
-    const MEMBER_ERRORS = 104;
-    const MEMBER_INVALID = 105;
-
-    const SECTION_INVALID = 201;
-
-    const ACTIVATION_PRE_COMPLETED = 303;
-    const ACTIVATION_CODE_INVALID = 304;
-    const RECOVERY_CODE_INVALID = 305;
-
-    const ALREADY_LOGGED_IN = 501;
-}

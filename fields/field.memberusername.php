@@ -74,7 +74,6 @@
 			if(empty($username)) {
 				extension_Members::$_errors[$this->get('element_name')] = array(
 					'message' => __('\'%s\' is a required field.', array($this->get('label'))),
-					'message-id' => EventMessages::FIELD_MISSING,
 					'type' => 'missing',
 					'label' => $this->get('label')
 				);
@@ -89,7 +88,6 @@
 			if(is_null($member_id)) {
 				extension_Members::$_errors[$this->get('element_name')] = array(
 					'message' => __("Member not found."),
-					'message-id' => MemberEventMessages::MEMBER_INVALID,
 					'type' => 'invalid',
 					'label' => $this->get('label')
 				);

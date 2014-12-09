@@ -66,17 +66,7 @@
 			if(empty($email)) {
 				extension_Members::$_errors[$this->get('element_name')] = array(
 					'message' => __('\'%s\' is a required field.', array($this->get('label'))),
-					'message-id' => EventMessages::FIELD_MISSING,
 					'type' => 'missing',
-					'label' => $this->get('label')
-				);
-				return null;
-			}
-			else if(!fieldMemberEmail::applyValidationRule($email)) {
-				extension_Members::$_errors[$this->get('element_name')] = array(
-					'message' => __('\'%s\' contains invalid characters.', array($this->get('label'))),
-					'message-id' => EventMessages::FIELD_INVALID,
-					'type' => 'invalid',
 					'label' => $this->get('label')
 				);
 				return null;
@@ -84,13 +74,12 @@
 
 			$member_id = Symphony::Database()->fetchVar('entry_id', 0, sprintf(
 				"SELECT `entry_id` FROM `tbl_entries_data_%d` WHERE `value` = '%s' LIMIT 1",
-				$this->get('id'), Symphony::Database()->cleanValue($email)
+				$this->get('id'), $email
 			));
 
 			if(is_null($member_id)) {
 				extension_Members::$_errors[$this->get('element_name')] = array(
-					'message' => __('Member not found.'),
-					'message-id' => MemberEventMessages::MEMBER_INVALID,
+					'message' => __("Member not found."),
 					'type' => 'invalid',
 					'label' => $this->get('label')
 				);
@@ -132,7 +121,7 @@
 		Input:
 	-------------------------------------------------------------------------*/
 
-		public static function applyValidationRule($data){
+		private static function __applyValidationRule($data){
 			include(TOOLKIT . '/util.validators.php');
 			$rule = (isset($validators['email']) ? $validators['email'] : fieldMemberEmail::$validator);
 
@@ -153,7 +142,7 @@
 
 			//	Check Email Address
 			if(!empty($email)) {
-				if(!fieldMemberEmail::applyValidationRule($email)) {
+				if(!fieldMemberEmail::__applyValidationRule($email)) {
 					$message = __('%s contains invalid characters.', array($this->get('label')));
 					return self::__INVALID_FIELDS__;
 				}

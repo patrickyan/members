@@ -260,7 +260,7 @@
 
 		/**
 		 * Sets the permissions for the current Role by loading them from
-		 * `tbl_members_roles_forbidden_pages` and `tbl_members_roles_event_permissions`.
+		 * `tbl_member_roles_forbidden_pages` and `tbl_member_roles_event_permissions`.
 		 * The permissions are set under `forbidden_pages` and `event_permissions` keys
 		 * that can be accessed via `Role->get('event_permissions')`.
 		 */
@@ -320,10 +320,6 @@
 		 * `EventPermissions` constants, `NO_PERMISSIONS`, `OWN_ENTRIES`, `ALL_ENTRIES`
 		 * or `CREATE`.
 		 *
-		 * @since Symphony 2.4
-		 *  This function defaults to false (`NO_PERMISSIONS`) if there are no matches.
-		 *  This means the Role must be updated with all the event permissions before the
-		 *  event can be used.
 		 * @param string $event_handle
 		 * @param string $action
 		 * @param integer $required_level
@@ -336,9 +332,8 @@
 				return ($event_permissions[$event_handle][$action] >= $required_level);
 			}
 
-			// If the event wasn't in the array, then assume it's not ok.
-			// Note this a change since Members 1.4. RE: #242.
-			return false;
+			// If the event wasn't in the array, then assume it's ok.
+			return true;
 		}
 	}
 

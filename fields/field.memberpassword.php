@@ -106,7 +106,6 @@
 			if(empty($password)) {
 				extension_Members::$_errors[$this->get('element_name')] = array(
 					'message' => __('\'%s\' is a required field.', array($this->get('label'))),
-					'message-id' => EventMessages::FIELD_MISSING,
 					'type' => 'missing',
 					'label' => $this->get('label')
 				);
@@ -186,7 +185,6 @@
 
 			extension_Members::$_errors[$this->get('element_name')] = array(
 				'message' => __('Invalid %s.', array($this->get('label'))),
-				'message-id' => MemberEventMessages::MEMBER_INVALID,
 				'type' => 'invalid',
 				'label' => $this->get('label')
 			);
